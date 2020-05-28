@@ -27,10 +27,10 @@ func main() {
 	var ch chan []byte = make(chan []byte)
 	var wg sync.WaitGroup
 	wg.Add(max)
-	var counters = make([]counter,max)
+	var counters = make([]counter, max)
 	for i := 0; i <= max-1; i++ {
 		c := counter{}
-		counters[i] = c;
+		counters[i] = c
 		go func() {
 			defer wg.Done()
 			for chunk := range ch {
@@ -39,7 +39,7 @@ func main() {
 		}()
 	}
 	err := read("./files", 1024, ch)
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 	wg.Wait()
@@ -50,7 +50,7 @@ func main() {
 	fmt.Println(plot)
 }
 
-func read(folder string, chunkSize int, ch chan []byte) (error) {
+func read(folder string, chunkSize int, ch chan []byte) error {
 	defer close(ch)
 	chunk := []byte{}
 	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
@@ -66,8 +66,8 @@ func read(folder string, chunkSize int, ch chan []byte) (error) {
 		}
 		defer f.Close()
 		r := bufio.NewReader(f)
+		buf := make([]byte, 0, chunkSize)
 		for {
-			buf := make([]byte, 0, chunkSize)
 			n, err := r.Read(buf[:cap(buf)])
 			buf = buf[:n]
 			if n == 0 {
@@ -95,9 +95,9 @@ func read(folder string, chunkSize int, ch chan []byte) (error) {
 	return nil
 }
 
-func process (counter counter, chunk []byte){
-	for _,v := range chunk{
-			counter[v] += 1
+func process(counter counter, chunk []byte) {
+	for _, v := range chunk {
+		counter[v] += 1
 	}
 }
 
@@ -112,22 +112,26 @@ func merge(counters []counter) map[uint8]int {
 }
 
 func norm(counter counter) counter {
-	res := make(map[uint8]int,len(counter))
-	var max =-(math.MaxInt32 << 1)+1;
-	var min =+(math.MaxInt32);
-	for _,v := range counter {
-		if (v > max) {max = v};
-		if (v < min) {min = v};
+	res := make(map[uint8]int, len(counter))
+	var max = -(math.MaxInt32 << 1) + 1
+	var min = +(math.MaxInt32)
+	for _, v := range counter {
+		if v > max {
+			max = v
+		}
+		if v < min {
+			min = v
+		}
 	}
-	var dx  = (max - min)
-	for k,v := range counter {
-		res[k] = (v-min) * 100 / dx
+	var dx = (max - min)
+	for k, v := range counter {
+		res[k] = (v - min) * 100 / dx
 	}
-	return res;
+	return res
 }
 
 func plot(c counter, norm counter) string {
-	nice := func(a uint8) (string){
+	nice := func(a uint8) string {
 		switch a {
 		case 10:
 			return "LF"
@@ -139,7 +143,7 @@ func plot(c counter, norm counter) string {
 			return "" + string(rune(a)) + " "
 		}
 	}
-	srt := func(c counter) ([]uint8) {
+	srt := func(c counter) []uint8 {
 		result := []uint8{}
 		for k := range c {
 			result = append(result, k)
@@ -151,13 +155,12 @@ func plot(c counter, norm counter) string {
 	}
 	keys := srt(c)
 	builder := strings.Builder{}
-	for _,k := range keys {
+	for _, k := range keys {
 		v := c[k]
 		n := norm[k]
-		gauge := strings.Repeat(".", n / 2);
-		x := fmt.Sprintf("%v| %v [%v]\n",nice(k), gauge , v)
+		gauge := strings.Repeat(".", n/2)
+		x := fmt.Sprintf("%v| %v [%v]\n", nice(k), gauge, v)
 		builder.WriteString(x)
 	}
 	return builder.String()
 }
-
